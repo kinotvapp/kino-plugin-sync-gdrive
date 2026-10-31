@@ -1,6 +1,6 @@
 {
   "id": "sync-gdrive",
-  "name": "Sync Google Drive",
+  "name": "Kino Sync for Google Drive",
   "version": "0.1.0",
   "apiVersion": 13,
   "entry": "plugin.js",

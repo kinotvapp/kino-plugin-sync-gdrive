@@ -1,4 +1,4 @@
-# Sync Google Drive (experimental)
+# Kino Sync for Google Drive (experimental)
 
 [Read in English](README.md)
 
