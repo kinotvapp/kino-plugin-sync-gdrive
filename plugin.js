@@ -405,6 +405,12 @@ export async function validateSettings(values) {
 
 /** The steps, in order. */
 export const STEPS = ["connect", "code", "done"];
+/**
+ * How often Kino ticks while the code is on screen. Google is asked only when ITS interval has passed since the last time, so in front it is
+ * asked every `interval` seconds as it requires; but Kino pauses the ticks while the person is at google.com/device, and on coming back
+ * the very next tick (a second later) finds the interval long past and asks at once: the answer is known within about a second.
+ */
+export const TICK_MS = 1000;
 const VERIFY_URL = "https://www.google.com/device";
 
 /** What went wrong, as a state word; the texts are the screen's, in both languages. `retry`: the banner offers to ask for a new code. */
@@ -533,7 +539,7 @@ export function view(raw, device, linked) {
   return {
     type: "SingleChildScrollView", key: "page",
     // While the code is on screen Kino asks every few seconds whether Google has the person's answer (never faster than Google's own interval).
-    ...(f.step === "code" ? { every: { ms: f.interval * 1000, event: "poll" } } : {}),
+    ...(f.step === "code" ? { every: { ms: TICK_MS, event: "poll" } } : {}),
     // Once connected, the copy's size and time are asked of Drive AFTER the first paint (never while the screen opens): one tick, then no timer.
     ...(f.step === "done" && f.infoAt === 0 ? { every: { ms: 1000, event: "loadInfo" } } : {}),
     children: [{
@@ -601,11 +607,15 @@ export async function onEvent(name, arg, rawFlow) {
       try { started = await startDeviceFlow(); } catch (e) { started = { error: e && e.code === "auth_required" ? "missing" : "failed" }; }
       if (started.error) return next({ step: "connect", error: started.error });
       const dev = started.dev;
+      writeStore("poll", { at: Date.now() }); // Google is first asked one interval from now
       return next({ step: "code", user: dev.user, url: dev.url, exp: dev.exp, interval: dev.interval, status: "" });
     }
     // The timer: has the person accepted? Nothing to say while Google still waits.
     case "poll": {
       if (f.step !== "code") return null;
+      const last = readStore("poll");
+      if (last && Date.now() - Number(last.at) < f.interval * 1000) return null; // too soon for Google: the next tick asks
+      writeStore("poll", { at: Date.now() });
       let r;
       try { r = await pollDeviceFlow(); } catch (_) { return null; }
       switch (r.status) {
