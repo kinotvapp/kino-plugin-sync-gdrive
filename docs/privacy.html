@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de privacidad / Privacy policy · Sync Google Drive para Kino</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <nav>
+    <a href="index.html">Inicio / Home</a>
+    <a href="privacy.html">Privacidad / Privacy</a>
+    <a href="terms.html">Condiciones / Terms</a>
+    <a href="https://github.com/kinotvapp/kino-plugin-sync-gdrive">GitHub</a>
+  </nav>
+
+  <section lang="es">
+    <h1>Política de privacidad</h1>
+    <p class="muted">Sync Google Drive para Kino · Última actualización: 31 de octubre de 2026</p>
+
+    <h2>Qué es este plugin</h2>
+    <p>"Sync Google Drive" es un plugin de Kino que sincroniza tus datos de Kino entre tus aparatos usando tu propio Google Drive. Es un proyecto independiente, no oficial y sin relación con Google.</p>
+
+    <h2>Qué datos de Google usa</h2>
+    <p>El plugin pide un único permiso de Google: <code>https://www.googleapis.com/auth/drive.appdata</code>. Ese permiso solo da acceso a una <strong>carpeta oculta de la propia app</strong> en tu Google Drive. El plugin no puede ver, leer, listar ni modificar ninguno de tus otros archivos.</p>
+    <p>Dentro de esa carpeta el plugin crea, lee y reemplaza un único archivo, <code>kino-sync.bin</code>, que contiene una copia de tus datos de Kino (por ejemplo tu historial, tu biblioteca y tus ajustes). Esa copia se <strong>cifra en tu aparato</strong> antes de subirse; la clave de cifrado nunca se envía a Google ni a nadie más.</p>
+
+    <h2>Adónde van tus datos</h2>
+    <ul>
+      <li>Tu aparato se comunica <strong>directamente con Google</strong> (oauth2.googleapis.com y www.googleapis.com). No existe ningún servidor nuestro entre tú y Google.</li>
+      <li>No recibimos, almacenamos ni tenemos acceso a tus datos, a tu copia ni a tus credenciales.</li>
+      <li>El plugin no incluye analítica, publicidad ni rastreo.</li>
+      <li>Las credenciales que Google entrega al conectarte (el token de acceso y el de renovación) se guardan <strong>solo en tu aparato</strong>, en el almacenamiento protegido de contraseñas de Kino, y no se copian a tus otros aparatos.</li>
+    </ul>
+
+    <h2>Compartir y venta de datos</h2>
+    <p>No vendemos ni compartimos tus datos con terceros. El uso y la transferencia a cualquier otra app de la información recibida de las APIs de Google se ajustará a la <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de datos de usuario de los servicios de las API de Google</a>, incluidos los requisitos de uso limitado.</p>
+
+    <h2>Cómo quitar el acceso y borrar tus datos</h2>
+    <ul>
+      <li>En el plugin, toca <strong>Desconectar</strong>: el token se revoca en Google y se borra de ese aparato.</li>
+      <li>También puedes quitar el acceso desde tu cuenta de Google, en <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      <li>Para borrar la copia, en Google Drive ve a Configuración → Administrar aplicaciones y elige borrar los datos ocultos de la app.</li>
+    </ul>
+
+    <h2>Menores</h2>
+    <p>El plugin no está dirigido a menores de 13 años y no recoge datos de ellos de forma intencional.</p>
+
+    <h2>Cambios y contacto</h2>
+    <p>Si esta política cambia, la nueva versión se publicará en esta misma página con su fecha. Preguntas: <a href="mailto:contact@kinoplayer.com">contact@kinoplayer.com</a>.</p>
+  </section>
+
+  <hr>
+
+  <section lang="en">
+    <h1>Privacy policy</h1>
+    <p class="muted">Sync Google Drive for Kino · Last updated: October 31, 2026</p>
+
+    <h2>What this plugin is</h2>
+    <p>"Sync Google Drive" is a Kino plugin that syncs your Kino data between your devices using your own Google Drive. It is an independent, unofficial project and is not affiliated with Google.</p>
+
+    <h2>What Google data it uses</h2>
+    <p>The plugin asks for one Google permission: <code>https://www.googleapis.com/auth/drive.appdata</code>. That permission only gives access to a <strong>hidden folder that belongs to the app itself</strong> in your Google Drive. The plugin cannot see, read, list or change any of your other files.</p>
+    <p>Inside that folder the plugin creates, reads and replaces a single file, <code>kino-sync.bin</code>, which holds a copy of your Kino data (for example your history, library and settings). That copy is <strong>encrypted on your device</strong> before it is uploaded; the encryption key is never sent to Google or to anyone else.</p>
+
+    <h2>Where your data goes</h2>
+    <ul>
+      <li>Your device talks <strong>directly to Google</strong> (oauth2.googleapis.com and www.googleapis.com). There is no server of ours between you and Google.</li>
+      <li>We do not receive, store or have access to your data, your copy or your credentials.</li>
+      <li>The plugin contains no analytics, advertising or tracking.</li>
+      <li>The credentials Google hands over when you connect (the access token and the refresh token) are kept <strong>only on your device</strong>, in Kino's protected storage for passwords, and are not copied to your other devices.</li>
+    </ul>
+
+    <h2>Sharing and sale of data</h2>
+    <p>We do not sell or share your data with third parties. The use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+    <h2>How to remove access and delete your data</h2>
+    <ul>
+      <li>In the plugin, tap <strong>Disconnect</strong>: the token is revoked at Google and erased from that device.</li>
+      <li>You can also remove access from your Google account at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      <li>To delete the copy, in Google Drive go to Settings → Manage apps and choose to delete the app's hidden data.</li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>The plugin is not directed at children under 13 and does not knowingly collect data from them.</p>
+
+    <h2>Changes and contact</h2>
+    <p>If this policy changes, the new version will be published on this same page with its date. Questions: <a href="mailto:contact@kinoplayer.com">contact@kinoplayer.com</a>.</p>
+  </section>
+
+  <footer>Sync Google Drive para Kino · MIT</footer>
+</main>
+</body>
+</html>

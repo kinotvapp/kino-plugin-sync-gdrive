@@ -1,0 +1,116 @@
+{
+  "id": "sync-gdrive",
+  "name": "Sync Google Drive",
+  "version": "0.1.0",
+  "apiVersion": 13,
+  "entry": "plugin.js",
+  "description": "Sincroniza tus aparatos de Kino a través de tu propio Google Drive: conectas con un código, sin servidor ni hojas que copiar. Experimental. No oficial: sin relación con Google. (Experimental. Unofficial: not affiliated with Google.)",
+  "author": "Kino",
+  "homepage": "https://github.com/kinotvapp/kino-plugin-sync-gdrive",
+  "icon": "icon.png",
+  "hosts": [
+    "oauth2.googleapis.com",
+    "www.googleapis.com"
+  ],
+  "capabilities": [
+    "syncProvider"
+  ],
+  "settings": [
+    {
+      "key": "steps",
+      "type": "help",
+      "title": "Cómo conectar",
+      "titleEn": "How to connect",
+      "body": "1. Toca Conectar con Google.\n2. En tu celular o computador abre google.com/device y escribe el código que te muestro.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta oculta de tu Drive que solo este plugin ve. Está cifrada: Google no puede leerla.",
+      "bodyEn": "1. Tap Connect with Google.\n2. On your phone or computer open google.com/device and type the code I show you.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a hidden folder of your Drive that only this plugin sees. It is encrypted: Google cannot read it."
+    },
+    {
+      "key": "account",
+      "label": "Tu cuenta de Google",
+      "labelEn": "Your Google account",
+      "type": "section",
+      "hint": "Cada aparato se conecta por su cuenta con un código; la copia de seguridad es la misma para todos.",
+      "hintEn": "Each device connects on its own with a code; the copy is the same for all of them."
+    },
+    {
+      "key": "connect",
+      "label": "Conectar con Google",
+      "labelEn": "Connect with Google",
+      "type": "action"
+    },
+    {
+      "key": "finish",
+      "label": "Ya lo hice",
+      "labelEn": "I did it",
+      "type": "action"
+    },
+    {
+      "key": "disconnect",
+      "label": "Desconectar",
+      "labelEn": "Disconnect",
+      "type": "action",
+      "confirm": "¿Desconectar este aparato de Google Drive? Tu copia en Drive no se borra.",
+      "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted."
+    },
+    {
+      "key": "status",
+      "label": "Estado",
+      "labelEn": "Status",
+      "type": "status"
+    },
+    {
+      "key": "advanced",
+      "label": "Avanzado",
+      "labelEn": "Advanced",
+      "type": "section",
+      "hint": "El cliente de Google con el que se conecta este plugin. Si usas el de Kino, no cambies nada.",
+      "hintEn": "The Google client this plugin connects with. If you use Kino's, change nothing."
+    },
+    {
+      "key": "clientId",
+      "label": "Id del cliente de Google",
+      "labelEn": "Google client id",
+      "type": "text",
+      "hint": "123456789-abc.apps.googleusercontent.com",
+      "hintEn": "123456789-abc.apps.googleusercontent.com"
+    },
+    {
+      "key": "clientSecret",
+      "label": "Secreto del cliente",
+      "labelEn": "Client secret",
+      "type": "password",
+      "hint": "El que te dio Google Cloud para ese cliente",
+      "hintEn": "The one Google Cloud gave you for that client"
+    },
+    {
+      "key": "syncKey",
+      "label": "Clave de cifrado",
+      "labelEn": "Encryption key",
+      "type": "password",
+      "hint": "Se crea sola la primera vez; no la escribas",
+      "hintEn": "Made by itself the first time; do not type it"
+    },
+    {
+      "key": "refreshToken",
+      "label": "Conexión con Google",
+      "labelEn": "Google connection",
+      "type": "password",
+      "sync": false,
+      "hint": "Se llena sola al conectar; nunca sale de este aparato",
+      "hintEn": "Filled in when you connect; it never leaves this device"
+    }
+  ],
+  "sync": {
+    "mode": "poll",
+    "pullEveryMs": 300000,
+    "pushDebounceMs": 60000,
+    "maxBlobBytes": 4194304,
+    "keySecret": "syncKey",
+    "generateKey": true,
+    "provision": [
+      "syncKey",
+      "clientId",
+      "clientSecret"
+    ]
+  }
+}
