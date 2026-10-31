@@ -13,9 +13,14 @@ your TV  ───┘                    www.googleapis.com ────┘    k
 ```
 
 ## What the person sees
-1. **Connect with Google** → the plugin shows a code (for example `ABCD-EFGH`).
-2. On another screen they open `google.com/device`, type the code, pick their account and accept.
-3. They come back and tap **I did it**. Every device connects on its own; the copy is the same for all.
+They open **Kino Sync** among their plugins (a screen built with Kino's new interface, apiVersion 14) and follow three steps:
+1. **Connect with Google** → the code appears big (for example `ABCD-EFGH`) with its countdown.
+2. **Type the code at Google**: on a phone or the desktop one button opens `google.com/device` (Kino asks to confirm before opening it) and another copies the code; on a TV a QR is shown to scan with the phone. The screen **notices by itself** when you accept (it asks Google every few seconds while it is open): nothing more to tap.
+3. **Done**: "Connected to Google Drive", with "Test the connection" and "Disconnect this device".
+
+Around the steps the screen uses Kino's components: a **header card** with a badge ("Connected" / "Not connected"); a **banner** with a "Try again" button when something fails (expired code, you said no, unknown client…); in the last step, the **state of the copy in Drive** (its size and when it was uploaded, with a time Kino rewrites by itself); an **accordion of questions** (what is kept, who can read it, other devices, how to delete it); and, folded away, **Kino's own settings form** for whoever wants to use an own Google client. On a TV the first button takes the focus and the QR replaces the open and copy buttons.
+
+Every device connects on its own; the copy is the same for all. The same steps exist as buttons in the plugin's settings ("Connect by hand"), just in case.
 
 Kino makes the encryption key by itself (`generateKey`) and carries it between devices with **Send / Receive configuration**; **Google never gets it**, it only sees the encrypted file. (The desktop app does not have that feature yet: there the key would have to be entered by hand.)
 
@@ -42,7 +47,7 @@ Drive cannot do "write only if the version is X". The plugin does **check, write
 A window of milliseconds remains in which two devices writing at once can lose a write for a moment; Kino brings it back on the next round because every device keeps its own data. With a real server (or R2) that window does not exist.
 
 ## Verified and not verified
-**Verified against the real Google (2026-10-31)**, with the plugin's own code:
+**Verified against the real Google (2026-10-31)**, with the plugin's own code (the screen was tested with the Kino SDK's rules and the imitation, not on a device):
 - The device flow gives a code with `drive.file` and **refuses `drive.appdata`** (`invalid_scope: Invalid device flow scope`).
 - The token exchange, the "Kino Sync" folder and the file are created, and a pull returns **identical bytes** (100 KB and 3 MB).
 - A push with an old version is refused (`conflict`); only one folder is ever made.

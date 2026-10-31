@@ -154,7 +154,7 @@ async function drive(method, url, options, again) {
 /** The copy's file (the oldest if a race made two), or null. With `drive.file` only the files this client created are listed. */
 async function findFile() {
   const q = "name='" + FILE_NAME + "' and trashed=false";
-  const url = DRIVE + "/drive/v3/files?" + form({ q, orderBy: "createdTime", pageSize: 10, fields: "files(id,version,size,appProperties)" });
+  const url = DRIVE + "/drive/v3/files?" + form({ q, orderBy: "createdTime", pageSize: 10, fields: "files(id,version,size,modifiedTime,appProperties)" });
   const r = await drive("GET", url);
   if (r.status !== 200) throw kino.error("unavailable", "list status " + r.status);
   const files = (r.json() || {}).files || [];
@@ -271,50 +271,85 @@ export async function settingsStatus() {
 
 const displayUrl = (u) => String(u || DEFAULT_VERIFY).replace(/^https?:\/\//, "");
 
-async function connect() {
+/**
+ * Starts Google's device flow: the code the person types, or the reason it could not start. The device code (the credential only
+ * this plugin and Google share) goes to storage, never into a screen's state.
+ */
+async function startDeviceFlow() {
   const { id } = client();
   const r = await oauthPost("/device/code", { client_id: id, scope: SCOPE });
   kino.log("connect: device/code answered " + r.status + (r.json.error ? " " + r.json.error : ""));
   if (r.status !== 200 || !r.json.device_code || !r.json.user_code) {
-    if (r.json.error === "invalid_client" || r.json.error === "unauthorized_client") {
-      return { message: t("Google no reconoce el cliente. Revisa el ID del cliente en el paso 1 y toca Guardar.", "Google does not recognise the client. Check the client id in step 1 and tap Save.") };
-    }
-    return { message: t("Google no dio un código. Intenta de nuevo en un momento.", "Google did not give a code. Try again in a moment.") };
+    return { error: r.json.error === "invalid_client" || r.json.error === "unauthorized_client" ? "client" : "failed" };
   }
-  const url = r.json.verification_url || r.json.verification_uri || DEFAULT_VERIFY;
-  writeStore("dev", { code: r.json.device_code, user: r.json.user_code, url, interval: Number(r.json.interval) || 5, exp: Date.now() + (Number(r.json.expires_in) || 1800) * 1000 });
-  return { message: t(`Abre ${displayUrl(url)} en tu celular o computador y escribe el código ${r.json.user_code}. Luego toca "Ya lo hice".`, `Open ${displayUrl(url)} on your phone or computer and type the code ${r.json.user_code}. Then tap "I did it".`) };
+  const dev = {
+    code: r.json.device_code,
+    user: r.json.user_code,
+    url: r.json.verification_url || r.json.verification_uri || DEFAULT_VERIFY,
+    interval: Number(r.json.interval) || 5,
+    exp: Date.now() + (Number(r.json.expires_in) || 1800) * 1000,
+  };
+  writeStore("dev", dev);
+  return { dev };
 }
 
-async function finish() {
+/**
+ * One look at whether the person has accepted at Google. `status` is one of: none (no code was asked for), expired, approved (with the
+ * refresh token), scope (accepted without the Drive permission), pending, slow (Google asks to ask less often), denied, error.
+ */
+async function pollDeviceFlow() {
   const dev = readStore("dev");
-  if (!dev) return { message: t("Toca primero Conectar con Google.", "Tap Connect with Google first.") };
+  if (!dev) return { status: "none" };
   if (Date.now() > Number(dev.exp)) {
     writeStore("dev", null);
-    return { message: t("El código caducó. Toca Conectar con Google para pedir otro.", "The code expired. Tap Connect with Google to get another.") };
+    return { status: "expired" };
   }
   const { id, secret } = client();
   const r = await oauthPost("/token", { client_id: id, client_secret: secret, device_code: dev.code, grant_type: "urn:ietf:params:oauth:grant-type:device_code" });
   kino.log("finish: token answered " + r.status + (r.json.error ? " " + r.json.error : ""));
   if (r.status === 200 && r.json.refresh_token) {
-    if (r.json.scope && !String(r.json.scope).split(" ").includes(SCOPE)) {
-      writeStore("dev", null);
-      return { message: t("No diste el permiso para guardar archivos de Kino en Drive. Conecta de nuevo y déjalo marcado.", "You did not give the permission to keep Kino's files in Drive. Connect again and leave it ticked.") };
-    }
     writeStore("dev", null);
+    if (r.json.scope && !String(r.json.scope).split(" ").includes(SCOPE)) return { status: "scope" };
     if (r.json.access_token) writeStore("tok", { token: r.json.access_token, exp: Date.now() + (Number(r.json.expires_in) || 3600) * 1000 });
-    return { message: t("Conectado a Google Drive.", "Connected to Google Drive."), setSettings: { refreshToken: r.json.refresh_token } };
+    return { status: "approved", refreshToken: r.json.refresh_token };
   }
   switch (r.json.error) {
-    case "authorization_pending":
+    case "authorization_pending": return { status: "pending", dev };
+    case "slow_down": return { status: "slow", dev };
+    case "access_denied": writeStore("dev", null); return { status: "denied" };
+    case "expired_token": writeStore("dev", null); return { status: "expired" };
+    default: return { status: "error" };
+  }
+}
+
+/** The classic settings form's "Conectar con Google" button. */
+async function connect() {
+  const started = await startDeviceFlow();
+  if (started.error === "client") {
+    return { message: t("Google no reconoce el cliente. Revisa el ID del cliente en Avanzado y toca Guardar.", "Google does not recognise the client. Check the client id under Advanced and tap Save.") };
+  }
+  if (started.error) return { message: t("Google no dio un código. Intenta de nuevo en un momento.", "Google did not give a code. Try again in a moment.") };
+  const { dev } = started;
+  return { message: t(`Abre ${displayUrl(dev.url)} en tu celular o computador y escribe el código ${dev.user}. Luego toca "Ya lo hice".`, `Open ${displayUrl(dev.url)} on your phone or computer and type the code ${dev.user}. Then tap "I did it".`) };
+}
+
+/** The classic settings form's "Ya lo hice" button. */
+async function finish() {
+  const dev = readStore("dev");
+  if (!dev) return { message: t("Toca primero Conectar con Google.", "Tap Connect with Google first.") };
+  const r = await pollDeviceFlow();
+  switch (r.status) {
+    case "approved":
+      return { message: t("Conectado a Google Drive.", "Connected to Google Drive."), setSettings: { refreshToken: r.refreshToken } };
+    case "scope":
+      return { message: t("No diste el permiso para guardar archivos de Kino en Drive. Conecta de nuevo y déjalo marcado.", "You did not give the permission to keep Kino's files in Drive. Connect again and leave it ticked.") };
+    case "pending":
       return { message: t(`Google todavía espera el código. Escribe ${dev.user} en ${displayUrl(dev.url)} y vuelve a tocar Ya lo hice.`, `Google is still waiting for the code. Type ${dev.user} at ${displayUrl(dev.url)} and tap I did it again.`) };
-    case "slow_down":
+    case "slow":
       return { message: t("Espera unos segundos y vuelve a tocar Ya lo hice.", "Wait a few seconds and tap I did it again.") };
-    case "access_denied":
-      writeStore("dev", null);
+    case "denied":
       return { message: t("Dijiste que no en Google. Toca Conectar con Google si quieres intentarlo otra vez.", "You said no at Google. Tap Connect with Google to try again.") };
-    case "expired_token":
-      writeStore("dev", null);
+    case "expired": case "none":
       return { message: t("El código caducó. Toca Conectar con Google para pedir otro.", "The code expired. Tap Connect with Google to get another.") };
     default:
       return { message: t("Google no aceptó el código. Toca Conectar con Google para empezar de nuevo.", "Google did not accept the code. Tap Connect with Google to start over.") };
@@ -355,4 +390,254 @@ export async function validateSettings(values) {
   const secret = String(values.clientSecret || "").trim();
   if (secret && secret.length < 10) out.clientSecret = t("Ese secreto es muy corto: cópialo completo.", "That secret is too short: copy all of it.");
   return Object.keys(out).length ? out : null;
+}
+
+// --- The screen (apiVersion 14): Kino's own components -----------------------------------------------------------------
+//
+// A header card with the state as a badge, a banner when something went wrong (with its retry button), Kino's `steps` for the
+// three steps (ask Google for a code, type it at google.com/device, done), the state of the copy in Drive once connected, an
+// accordion of questions and, folded away, Kino's own settings form for an own Google client.
+//
+// While the code step is open a timer asks Google every few seconds whether the person accepted, so nobody has to tap "I did it";
+// the answer of that timer writes the refresh token into the plugin's own `refreshToken` setting through `config` (a password
+// that never leaves this device). The screen's state holds only what may be seen (the code to type, its expiry, a problem word,
+// the size and time of the copy): the device code stays in storage and the token in the setting.
+
+/** The steps, in order. */
+export const STEPS = ["connect", "code", "done"];
+const VERIFY_URL = "https://www.google.com/device";
+
+/** What went wrong, as a state word; the texts are the screen's, in both languages. `retry`: the banner offers to ask for a new code. */
+const PROBLEMS = {
+  missing: { es: "Falta el cliente de Google. Pégalo en «Avanzado», más abajo, y toca Guardar.", en: "The Google client is missing. Paste it under «Advanced», below, and tap Save.", retry: false },
+  client: { es: "Google no reconoce el cliente de Kino Sync.", en: "Google does not recognise Kino Sync's client.", retry: true },
+  failed: { es: "Google no dio un código. Intenta de nuevo en un momento.", en: "Google did not give a code. Try again in a moment.", retry: true },
+  denied: { es: "Dijiste que no en Google. Puedes intentarlo otra vez.", en: "You said no at Google. You can try again.", retry: true },
+  expired: { es: "El código caducó. Pide otro.", en: "The code expired. Ask for another one.", retry: true },
+  scope: { es: "No diste el permiso para guardar archivos de Kino en tu Drive. Conecta de nuevo y déjalo marcado.", en: "You did not give the permission to keep Kino's files in your Drive. Connect again and leave it ticked.", retry: true },
+  error: { es: "Google no aceptó el código. Empieza de nuevo.", en: "Google did not accept the code. Start over.", retry: true },
+};
+
+/** The flow state read from whatever Kino kept (anything odd becomes the first step). */
+export function sanitizeFlow(raw) {
+  const f = raw && typeof raw === "object" ? raw : {};
+  const positive = (v, d) => (Number.isFinite(v) && v > 0 ? v : d);
+  const info = f.info && typeof f.info === "object" ? f.info : {};
+  const user = typeof f.user === "string" ? f.user.slice(0, 40) : "";
+  return {
+    // The code step without a code (a state that should not exist) is the first step: there is nothing to show or copy.
+    step: STEPS.includes(f.step) && !(f.step === "code" && !user) ? f.step : "connect",
+    user,
+    url: typeof f.url === "string" && /^https:\/\/[A-Za-z0-9.-]+\/[\x21-\x7e]{0,100}$/.test(f.url) ? f.url : VERIFY_URL,
+    exp: positive(f.exp, 0),
+    interval: Math.min(60, Math.max(5, Math.round(positive(f.interval, 5)))),
+    error: typeof f.error === "string" && PROBLEMS[f.error] ? f.error : "",
+    status: typeof f.status === "string" ? f.status.slice(0, 200) : "",
+    info: { size: positive(info.size, 0), modified: positive(info.modified, 0) },
+  };
+}
+
+/** Where each step is, seen from the current one. */
+export function stateOf(step, current) {
+  const i = STEPS.indexOf(step);
+  const c = STEPS.indexOf(current);
+  return i < c ? "done" : i === c ? "current" : "pending";
+}
+
+/** A size in the words a person reads. */
+export function sizeText(bytes) {
+  if (!(bytes > 0)) return "0 B";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return Math.round(bytes / 1024) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
+}
+
+const tile = (key, icon, title, titleEn, subtitle, subtitleEn, trailing) => ({
+  type: "ListTile", key, leading: { type: "Icon", name: icon, color: "primary" }, title, titleEn, subtitle, subtitleEn, ...(trailing ? { trailing } : {}),
+});
+
+function connectStep(f) {
+  return [
+    tile("why1", "lock", "Cifrada en tu aparato", "Encrypted on your device", "Google solo guarda texto cifrado: la clave no sale de tus aparatos.", "Google only keeps ciphertext: the key never leaves your devices."),
+    tile("why2", "list", "Una carpeta «Kino Sync»", "A «Kino Sync» folder", "En tu Drive. El plugin solo ve sus propios archivos.", "In your Drive. The plugin only sees its own files."),
+    tile("why3", "sync", "Todos tus aparatos iguales", "All your devices the same", "Historial, biblioteca y ajustes se mantienen al día.", "History, library and settings stay up to date."),
+    { type: "ElevatedButton", key: "start", icon: "sync", autofocus: true, labelText: "Conectar con Google", labelTextEn: "Connect with Google", onPressed: { event: "start", timeoutMs: 25000 } },
+  ];
+}
+
+function codeStep(f, tv) {
+  return [{
+    type: "Card", key: "codeCard", variant: "outlined", gap: 12, children: [
+      { type: "Text", text: "Tu código", textEn: "Your code", style: "caption", color: "muted" },
+      { type: "Text", key: "code", text: f.user, style: "h1", bold: true, color: "primary" },
+      { type: "Text", text: "Abre google.com/device, escribe este código, elige tu cuenta y acepta.", textEn: "Open google.com/device, type this code, pick your account and accept." },
+      ...(tv
+        // A TV has no browser worth using: a QR to scan with the phone, and the code to type there.
+        ? [{ type: "QrImage", key: "qr", value: f.url, size: "large", labelText: "Escanéalo con tu celular", labelTextEn: "Scan it with your phone" }]
+        : [{
+          type: "Row", key: "buttons", gap: 8, wrap: true, children: [
+            { type: "ElevatedButton", key: "open", icon: "open_in_new", autofocus: true, labelText: "Abrir google.com/device", labelTextEn: "Open google.com/device", onPressed: { go: { url: { href: f.url, title: "Google" } } } },
+            { type: "TextButton", key: "copy", icon: "copy", labelText: "Copiar código", labelTextEn: "Copy code", onPressed: { go: { copy: { text: f.user, label: "Código" } } } },
+          ],
+        }]),
+      { type: "CircularProgressIndicator", key: "waiting", text: "Esperando a que aceptes en Google…", textEn: "Waiting for you to accept at Google…" },
+      ...(f.exp > 0 ? [{ type: "Text", key: "expires", text: "El código caduca en", textEn: "The code expires in", time: f.exp, timeFormat: "countdown", style: "caption", color: "muted" }] : []),
+    ],
+  }, { type: "TextButton", key: "again", icon: "refresh", labelText: "Pedir otro código", labelTextEn: "Ask for another code", onPressed: { event: "start", timeoutMs: 25000 } }];
+}
+
+function doneStep(f) {
+  const hasCopy = f.info.size > 0;
+  return [
+    {
+      type: "Card", key: "stateCard", variant: "outlined", gap: 4, children: [
+        tile("connected", "check", "Conectado a Google Drive", "Connected to Google Drive", "Este aparato sincroniza solo.", "This device syncs by itself.", { type: "Badge", text: "Activo", textEn: "Active", color: "primary" }),
+        tile("copy", "upload", "Copia en tu Drive", "Copy in your Drive",
+          hasCopy ? sizeText(f.info.size) + " · carpeta «Kino Sync»" : "Aún no hay copia: se sube en cuanto sincronices.",
+          hasCopy ? sizeText(f.info.size) + " · «Kino Sync» folder" : "No copy yet: it is uploaded as soon as you sync."),
+        ...(f.info.modified > 0 ? [{ type: "Text", key: "last", text: "Última copia subida", textEn: "Last copy uploaded", time: f.info.modified, timeFormat: "relative", style: "caption", color: "muted" }] : []),
+        ...(f.status ? [{ type: "Text", key: "status", text: f.status, style: "caption", color: "muted" }] : []),
+      ],
+    },
+    {
+      type: "Row", key: "buttons", gap: 8, wrap: true, children: [
+        { type: "TextButton", key: "check", icon: "refresh", autofocus: true, labelText: "Probar conexión", labelTextEn: "Test the connection", onPressed: { event: "check", timeoutMs: 25000 } },
+        { type: "TextButton", key: "disconnect", icon: "close", labelText: "Desconectar este aparato", labelTextEn: "Disconnect this device", onPressed: "askDisconnect" },
+      ],
+    },
+  ];
+}
+
+const question = (key, es, en, bodyEs, bodyEn) => ({ key, title: es, titleEn: en, children: [{ type: "Text", text: bodyEs, textEn: bodyEn }] });
+
+/** The screen: a pure view of the flow state (no network, no clock). */
+export function view(raw, device) {
+  const f = sanitizeFlow(raw);
+  const tv = device === "tv";
+  const connectedNow = f.step === "done";
+  const titles = {
+    connect: ["Conectar con Google", "Connect with Google", "Código pedido", "Code requested"],
+    code: ["Escribe el código en Google", "Type the code at Google", "Cuenta aceptada", "Account accepted"],
+    done: ["Listo", "Done", "", ""],
+  };
+  const items = STEPS.map((step) => ({
+    key: step, title: titles[step][0], titleEn: titles[step][1], subtitle: titles[step][2], subtitleEn: titles[step][3],
+    state: stateOf(step, f.step),
+    ...(step === f.step ? { children: step === "connect" ? connectStep(f) : step === "code" ? codeStep(f, tv) : doneStep(f) } : {}),
+  }));
+  const problem = f.error ? PROBLEMS[f.error] : null;
+  return {
+    type: "SingleChildScrollView", key: "page",
+    // While the code is on screen Kino asks every few seconds whether Google has the person's answer (never faster than Google's own interval).
+    ...(f.step === "code" ? { every: { ms: f.interval * 1000, event: "poll" } } : {}),
+    children: [{
+      type: "Column", padding: 16, gap: 12, children: [
+        {
+          type: "Card", key: "header", variant: "filled", children: [{
+            type: "Row", gap: 12, crossAxisAlignment: "center", children: [
+              { type: "Icon", name: "sync", color: "primary" },
+              { type: "Column", weight: 1, gap: 4, children: [
+                { type: "Text", text: "Kino Sync", style: "h3" },
+                { type: "Text", text: "Tu copia cifrada, en tu propio Google Drive", textEn: "Your encrypted copy, in your own Google Drive", style: "caption", color: "muted" },
+              ] },
+              connectedNow ? { type: "Badge", key: "badge", text: "Conectado", textEn: "Connected", color: "primary" } : { type: "Badge", key: "badge", text: "Sin conectar", textEn: "Not connected", color: "muted" },
+            ],
+          }],
+        },
+        ...(problem ? [{
+          type: "MaterialBanner", key: "problem", role: "error", text: problem.es, textEn: problem.en,
+          ...(problem.retry ? { action: { label: "Reintentar", labelEn: "Try again", onTap: "start" } } : {}),
+        }] : []),
+        { type: "steps", key: "flow", onStepTap: "goBack", items },
+        { type: "ExpansionTile", key: "faq", multiple: true, items: [
+          question("q1", "¿Qué se guarda?", "What is kept?", "Una copia de tu historial, tu biblioteca y tus ajustes de Kino, en un solo archivo cifrado dentro de la carpeta «Kino Sync» de tu Drive.", "A copy of your Kino history, library and settings, in a single encrypted file inside the «Kino Sync» folder of your Drive."),
+          question("q2", "¿Quién puede leerla?", "Who can read it?", "Solo tus aparatos: se cifra antes de subirse y la clave nunca llega a Google. El plugin ve únicamente los archivos que él mismo crea.", "Only your devices: it is encrypted before it is uploaded and the key never reaches Google. The plugin only sees the files it creates itself."),
+          question("q3", "¿Y mis otros aparatos?", "And my other devices?", "Repite estos pasos en cada uno con la misma cuenta. La clave de cifrado se pasa de uno a otro con «Enviar configuración» y «Recibir configuración».", "Repeat these steps on each one with the same account. The encryption key goes from one to the other with «Send configuration» and «Receive configuration»."),
+          question("q4", "¿Cómo la borro o quito el acceso?", "How do I delete it or remove access?", "Borra la carpeta «Kino Sync» de tu Drive. Para quitar el acceso de todos tus aparatos a la vez entra a myaccount.google.com/permissions.", "Delete the «Kino Sync» folder from your Drive. To remove access for all your devices at once go to myaccount.google.com/permissions."),
+        ] },
+        { type: "ExpansionTile", key: "advanced", items: [{
+          key: "client", title: "Avanzado: tu propio cliente de Google", titleEn: "Advanced: your own Google client",
+          children: [
+            { type: "Text", text: "Déjalo vacío: Kino Sync ya trae el suyo. Solo si quieres usar tu propio cliente de Google, pega aquí su ID y su secreto y toca Guardar.", textEn: "Leave it empty: Kino Sync comes with its own. Only if you want to use your own Google client, paste its id and secret here and tap Save.", style: "caption", color: "muted" },
+            { type: "settings", key: "clientForm", keys: ["clientId", "clientSecret"] },
+          ],
+        }] },
+      ],
+    }],
+  };
+}
+
+const connected = () => String(kino.config.get("refreshToken") || "").trim() !== "";
+
+/** The copy's size and time in Drive (zeros when there is none). */
+async function driveInfo() {
+  const f = await findFile();
+  if (isEmpty(f)) return { size: 0, modified: 0 };
+  return { size: Number(f.size) || 0, modified: Date.parse(f.modifiedTime) || 0 };
+}
+
+/** What each event does. Pure but for the plugin's storage and its calls to Google. */
+export async function onEvent(name, arg, rawFlow) {
+  const f = sanitizeFlow(rawFlow);
+  const next = (patch) => ({ state: { flow: { ...f, error: "", ...patch } } });
+  switch (name) {
+    // The first call after the screen opens: where is this device?
+    case "open": {
+      if (connected()) {
+        let info = f.info;
+        try { info = await driveInfo(); } catch (_) { /* the screen still shows "connected"; Probar conexión says why not */ }
+        return next({ step: "done", info });
+      }
+      const dev = readStore("dev");
+      if (dev && Date.now() < Number(dev.exp)) return next({ step: "code", user: dev.user, url: dev.url, exp: dev.exp, interval: dev.interval });
+      return next({ step: "connect" });
+    }
+    case "start": {
+      let started;
+      try { started = await startDeviceFlow(); } catch (e) { started = { error: e && e.code === "auth_required" ? "missing" : "failed" }; }
+      if (started.error) return next({ step: "connect", error: started.error });
+      const dev = started.dev;
+      return next({ step: "code", user: dev.user, url: dev.url, exp: dev.exp, interval: dev.interval, status: "" });
+    }
+    // The timer: has the person accepted? Nothing to say while Google still waits.
+    case "poll": {
+      if (f.step !== "code") return null;
+      let r;
+      try { r = await pollDeviceFlow(); } catch (_) { return null; }
+      switch (r.status) {
+        case "approved":
+          return { config: { refreshToken: r.refreshToken }, state: { flow: { ...f, step: "done", error: "", status: "", info: { size: 0, modified: 0 } } }, toast: "Conectado a Google Drive", toastEn: "Connected to Google Drive" };
+        case "pending": return null;
+        case "slow": return { state: { flow: { ...f, interval: Math.min(60, f.interval + 5) } } };
+        case "denied": case "expired": case "scope": case "error": return next({ step: "connect", error: r.status });
+        default: return next({ step: "connect" });
+      }
+    }
+    case "goBack":
+      if (f.step === "connect") return null;
+      writeStore("dev", null);
+      return next({ step: "connect" });
+    case "check": {
+      const s = await syncStatus();
+      let info = f.info;
+      try { info = await driveInfo(); } catch (_) { /* the status line already says what failed */ }
+      return next({ step: f.step, status: s.message, info });
+    }
+    case "askDisconnect":
+      return { dialog: { title: "¿Desconectar este aparato?", titleEn: "Disconnect this device?", body: "Tu copia en Drive no se borra y tus otros aparatos siguen conectados.", bodyEn: "Your copy in Drive is not deleted and your other devices stay connected.", buttons: [{ label: "Desconectar", labelEn: "Disconnect", event: "disconnect", variant: "primary" }, { label: "Cancelar", labelEn: "Cancel", variant: "text" }] } };
+    // This device forgets its connection; it never revokes at Google (see disconnect() above).
+    case "disconnect":
+      writeStore("tok", null);
+      writeStore("dev", null);
+      return { config: { refreshToken: null }, state: { flow: { ...f, step: "connect", error: "", status: "", user: "", exp: 0, info: { size: 0, modified: 0 } } }, toast: "Este aparato ya no está conectado", toastEn: "This device is no longer connected" };
+    default: return null;
+  }
+}
+
+export async function screen({ state, device }) {
+  return view(state && state.flow, device);
+}
+
+export async function screenEvent({ name, arg, state }) {
+  return onEvent(name, arg, state && state.flow);
 }

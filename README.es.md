@@ -13,9 +13,14 @@ tu TV   ────┘                    www.googleapis.com ────┘   
 ```
 
 ## Qué ve la persona
-1. **Conectar con Google** → el plugin muestra un código (por ejemplo `ABCD-EFGH`).
-2. En otro aparato abre `google.com/device`, escribe el código, elige su cuenta y acepta.
-3. Vuelve y toca **Ya lo hice**. Cada aparato se conecta por su cuenta; la copia es la misma para todos.
+Abre **Kino Sync** entre sus plugins (una pantalla con la interfaz nueva de Kino, apiVersion 14) y sigue tres pasos:
+1. **Conectar con Google** → aparece el código grande (por ejemplo `ABCD-EFGH`) con su cuenta atrás.
+2. **Escribe el código en Google**: en el celular o el escritorio un botón abre `google.com/device` (Kino pide confirmar antes de abrirla) y otro copia el código; en la TV sale un QR para escanear con el celular. La pantalla **detecta sola** cuando aceptas (consulta a Google cada pocos segundos mientras está abierta): no hay que tocar nada más.
+3. **Listo**: "Conectado a Google Drive", con "Probar conexión" y "Desconectar este aparato".
+
+Alrededor de los pasos la pantalla usa los componentes de Kino: una **tarjeta de cabecera** con una insignia ("Conectado" / "Sin conectar"); un **aviso** con botón "Reintentar" cuando algo falla (código caducado, dijiste que no, cliente no reconocido…); en el último paso, el **estado de la copia en Drive** (su tamaño y cuándo se subió, con la hora que reescribe Kino solo); un **acordeón de preguntas** (qué se guarda, quién puede leerla, otros aparatos, cómo borrarla); y, plegado, el **formulario de ajustes de Kino** para quien quiera usar su propio cliente de Google. En la TV el primer botón toma el foco y el QR reemplaza a los botones de abrir y copiar.
+
+Cada aparato se conecta por su cuenta; la copia es la misma para todos. Los mismos pasos existen como botones en los ajustes del plugin ("Conectar a mano"), por si hace falta.
 
 La clave de cifrado la crea Kino sola (`generateKey`) y viaja entre aparatos con **Enviar / Recibir configuración**; **Google nunca la recibe**, solo ve el archivo cifrado. (En el desktop esa función todavía no existe: ahí la clave tendría que ponerse a mano.)
 
@@ -42,7 +47,7 @@ Drive no permite "escribe solo si la versión es X". El plugin hace **comprobar,
 Queda una ventana de milisegundos en la que dos aparatos que escriban a la vez pueden perder una escritura un momento; Kino la recupera en la siguiente ronda porque cada aparato conserva sus datos. Con un servidor real (o R2) esa ventana no existe.
 
 ## Verificado y sin verificar
-**Verificado contra el Google real (2026-10-31)**, con el código del propio plugin:
+**Verificado contra el Google real (2026-10-31)**, con el código del propio plugin (la pantalla se probó con las reglas del SDK de Kino y la imitación, no en un aparato):
 - El flujo de código da un código con `drive.file` y **rechaza `drive.appdata`** (`invalid_scope: Invalid device flow scope`).
 - El intercambio del token, la creación de la carpeta "Kino Sync" y del archivo funcionan, y la bajada devuelve **bytes idénticos** (100 KB y 3 MB).
 - Una subida con una versión vieja se rechaza (`conflict`); solo se hace una carpeta.

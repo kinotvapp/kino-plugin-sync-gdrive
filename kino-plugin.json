@@ -1,8 +1,8 @@
 {
   "id": "sync-gdrive",
   "name": "Kino Sync",
-  "version": "0.1.2",
-  "apiVersion": 13,
+  "version": "0.2.0",
+  "apiVersion": 14,
   "entry": "plugin.js",
   "description": "Sincroniza tus aparatos de Kino a través de tu propio Google Drive: conectas con un código, sin servidor ni hojas que copiar. Experimental. No oficial: sin relación con Google. (Experimental. Unofficial: not affiliated with Google.)",
   "author": "Kino",
@@ -13,7 +13,8 @@
     "www.googleapis.com"
   ],
   "capabilities": [
-    "syncProvider"
+    "syncProvider",
+    "screen"
   ],
   "settings": [
     {
@@ -21,16 +22,16 @@
       "type": "help",
       "title": "Cómo conectar",
       "titleEn": "How to connect",
-      "body": "1. Toca Conectar con Google.\n2. Toca Abrir google.com/device (o ábrelo en otro aparato) y escribe el código que verás en Estado.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
-      "bodyEn": "1. Tap Connect with Google.\n2. Tap Open google.com/device (or open it on another device) and type the code you will see in Status.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
+      "body": "Para conectar abre «Kino Sync» entre tus plugins: te guía paso a paso y detecta sola cuando aceptas en Google.\nTambién puedes hacerlo aquí con los botones: 1. Toca Conectar con Google. 2. Abre google.com/device y escribe el código que verás en Estado. 3. Elige tu cuenta y acepta. 4. Toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
+      "bodyEn": "To connect open \"Kino Sync\" among your plugins: it guides you step by step and notices by itself when you accept at Google.\nYou can also do it here with the buttons: 1. Tap Connect with Google. 2. Open google.com/device and type the code you will see in Status. 3. Pick your account and accept. 4. Tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
     },
     {
       "key": "account",
-      "label": "Conecta tu cuenta",
-      "labelEn": "Connect your account",
+      "label": "Conectar a mano",
+      "labelEn": "Connect by hand",
       "type": "section",
-      "hint": "Cada aparato se conecta por su cuenta con un código; la copia es la misma para todos.",
-      "hintEn": "Each device connects on its own with a code; the copy is the same for all of them."
+      "hint": "Lo mismo que la pantalla «Kino Sync», en botones. Cada aparato se conecta por su cuenta.",
+      "hintEn": "The same as the «Kino Sync» screen, as buttons. Each device connects on its own."
     },
     {
       "key": "connect",
@@ -122,6 +123,12 @@
       "clientId",
       "clientSecret"
     ]
+  },
+  "screen": {
+    "label": "Kino Sync",
+    "labelEn": "Kino Sync",
+    "icon": "sync",
+    "menuOpens": "screen"
   },
   "secrets": {
     "googleClientSecret": "kino-sealed:v1:j0sjtbbPvdhL0-4yCDzdhh9J5Olem8qZ68vX0EOw6Cmb5MrqKuVgEWncIUJ0ZYTyN9XOpf_nJFZ_vsCcg9tZmThhIPbz_uTHryZlMuIp4Kcl82JReI_V4KwsMk4wFp8"
