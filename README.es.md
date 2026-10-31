@@ -13,7 +13,7 @@ tu TV   ────┘                    www.googleapis.com ────┘   
 ```
 
 ## Qué ve la persona
-Abre **Kino Sync** entre sus plugins (una pantalla con la interfaz nueva de Kino, apiVersion 14) y sigue tres pasos:
+En los ajustes del plugin toca **Abrir configuración** (o **Configurar** en Ajustes ▸ Conectar ▸ proveedor de sincronización): se abre **Kino Sync**, una pantalla con la interfaz nueva de Kino (apiVersion 14, `settingsIn: "screen"`: el formulario clásico queda solo como respaldo si la pantalla no se puede abrir). Tres pasos:
 1. **Conectar con Google** → aparece el código grande (por ejemplo `ABCD-EFGH`) con su cuenta atrás.
 2. **Escribe el código en Google**: en el celular o el escritorio un botón abre `google.com/device` (Kino pide confirmar antes de abrirla) y otro copia el código; en la TV sale un QR para escanear con el celular. La pantalla **detecta sola** cuando aceptas (consulta a Google cada pocos segundos mientras está abierta): no hay que tocar nada más.
 3. **Listo**: "Conectado a Google Drive", con "Probar conexión" y "Desconectar este aparato".

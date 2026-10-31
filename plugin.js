@@ -434,6 +434,8 @@ export function sanitizeFlow(raw) {
     error: typeof f.error === "string" && PROBLEMS[f.error] ? f.error : "",
     status: typeof f.status === "string" ? f.status.slice(0, 200) : "",
     info: { size: positive(info.size, 0), modified: positive(info.modified, 0) },
+    // When the copy's size and time were asked of Drive (0: not yet, the screen shows a line saying it is looking).
+    infoAt: positive(f.infoAt, 0),
   };
 }
 
@@ -470,14 +472,15 @@ function codeStep(f, tv) {
     type: "Card", key: "codeCard", variant: "outlined", gap: 12, children: [
       { type: "Text", text: "Tu código", textEn: "Your code", style: "caption", color: "muted" },
       { type: "Text", key: "code", text: f.user, style: "h1", bold: true, color: "primary" },
-      { type: "Text", text: "Abre google.com/device, escribe este código, elige tu cuenta y acepta.", textEn: "Open google.com/device, type this code, pick your account and accept." },
+      { type: "Text", text: tv ? "En tu celular abre google.com/device, escribe este código, elige tu cuenta y acepta." : "Copia el código, abre google.com/device, pégalo, elige tu cuenta y acepta.", textEn: tv ? "On your phone open google.com/device, type this code, pick your account and accept." : "Copy the code, open google.com/device, paste it, pick your account and accept." },
       ...(tv
         // A TV has no browser worth using: a QR to scan with the phone, and the code to type there.
         ? [{ type: "QrImage", key: "qr", value: f.url, size: "large", labelText: "Escanéalo con tu celular", labelTextEn: "Scan it with your phone" }]
         : [{
           type: "Row", key: "buttons", gap: 8, wrap: true, children: [
-            { type: "ElevatedButton", key: "open", icon: "open_in_new", autofocus: true, labelText: "Abrir google.com/device", labelTextEn: "Open google.com/device", onPressed: { go: { url: { href: f.url, title: "Google" } } } },
-            { type: "TextButton", key: "copy", icon: "copy", labelText: "Copiar código", labelTextEn: "Copy code", onPressed: { go: { copy: { text: f.user, label: "Código" } } } },
+            // First copy the code, then open Google: the person pastes it there.
+            { type: "ElevatedButton", key: "copy", icon: "copy", autofocus: true, labelText: "Copiar código", labelTextEn: "Copy code", onPressed: { go: { copy: { text: f.user, label: "Código" } } } },
+            { type: "ElevatedButton", key: "open", icon: "open_in_new", labelText: "Abrir google.com/device", labelTextEn: "Open google.com/device", onPressed: { go: { url: { href: f.url, title: "Google" } } } },
           ],
         }]),
       { type: "CircularProgressIndicator", key: "waiting", text: "Esperando a que aceptes en Google…", textEn: "Waiting for you to accept at Google…" },
@@ -488,13 +491,14 @@ function codeStep(f, tv) {
 
 function doneStep(f) {
   const hasCopy = f.info.size > 0;
+  const asking = f.infoAt === 0;
   return [
     {
       type: "Card", key: "stateCard", variant: "outlined", gap: 4, children: [
         tile("connected", "check", "Conectado a Google Drive", "Connected to Google Drive", "Este aparato sincroniza solo.", "This device syncs by itself.", { type: "Badge", text: "Activo", textEn: "Active", color: "primary" }),
         tile("copy", "upload", "Copia en tu Drive", "Copy in your Drive",
-          hasCopy ? sizeText(f.info.size) + " · carpeta «Kino Sync»" : "Aún no hay copia: se sube en cuanto sincronices.",
-          hasCopy ? sizeText(f.info.size) + " · «Kino Sync» folder" : "No copy yet: it is uploaded as soon as you sync."),
+          asking ? "Consultando tu Drive…" : hasCopy ? sizeText(f.info.size) + " · carpeta «Kino Sync»" : "Aún no hay copia: se sube en cuanto sincronices.",
+          asking ? "Looking in your Drive…" : hasCopy ? sizeText(f.info.size) + " · «Kino Sync» folder" : "No copy yet: it is uploaded as soon as you sync."),
         ...(f.info.modified > 0 ? [{ type: "Text", key: "last", text: "Última copia subida", textEn: "Last copy uploaded", time: f.info.modified, timeFormat: "relative", style: "caption", color: "muted" }] : []),
         ...(f.status ? [{ type: "Text", key: "status", text: f.status, style: "caption", color: "muted" }] : []),
       ],
@@ -511,10 +515,10 @@ function doneStep(f) {
 const question = (key, es, en, bodyEs, bodyEn) => ({ key, title: es, titleEn: en, children: [{ type: "Text", text: bodyEs, textEn: bodyEn }] });
 
 /** The screen: a pure view of the flow state (no network, no clock). */
-export function view(raw, device) {
+export function view(raw, device, linked) {
   const f = sanitizeFlow(raw);
   const tv = device === "tv";
-  const connectedNow = f.step === "done";
+  const connectedNow = linked === true || f.step === "done";
   const titles = {
     connect: ["Conectar con Google", "Connect with Google", "Código pedido", "Code requested"],
     code: ["Escribe el código en Google", "Type the code at Google", "Cuenta aceptada", "Account accepted"],
@@ -530,6 +534,8 @@ export function view(raw, device) {
     type: "SingleChildScrollView", key: "page",
     // While the code is on screen Kino asks every few seconds whether Google has the person's answer (never faster than Google's own interval).
     ...(f.step === "code" ? { every: { ms: f.interval * 1000, event: "poll" } } : {}),
+    // Once connected, the copy's size and time are asked of Drive AFTER the first paint (never while the screen opens): one tick, then no timer.
+    ...(f.step === "done" && f.infoAt === 0 ? { every: { ms: 1000, event: "loadInfo" } } : {}),
     children: [{
       type: "Column", padding: 16, gap: 12, children: [
         {
@@ -583,11 +589,9 @@ export async function onEvent(name, arg, rawFlow) {
   switch (name) {
     // The first call after the screen opens: where is this device?
     case "open": {
-      if (connected()) {
-        let info = f.info;
-        try { info = await driveInfo(); } catch (_) { /* the screen still shows "connected"; Probar conexión says why not */ }
-        return next({ step: "done", info });
-      }
+      kino.log("screen open: connected=" + connected());
+      // No call to Google here: the screen must say "connected" at once (the numbers come with the loadInfo timer).
+      if (connected()) return next({ step: "done" });
       const dev = readStore("dev");
       if (dev && Date.now() < Number(dev.exp)) return next({ step: "code", user: dev.user, url: dev.url, exp: dev.exp, interval: dev.interval });
       return next({ step: "connect" });
@@ -606,12 +610,20 @@ export async function onEvent(name, arg, rawFlow) {
       try { r = await pollDeviceFlow(); } catch (_) { return null; }
       switch (r.status) {
         case "approved":
-          return { config: { refreshToken: r.refreshToken }, state: { flow: { ...f, step: "done", error: "", status: "", info: { size: 0, modified: 0 } } }, toast: "Conectado a Google Drive", toastEn: "Connected to Google Drive" };
+          return { config: { refreshToken: r.refreshToken }, state: { flow: { ...f, step: "done", error: "", status: "", info: { size: 0, modified: 0 }, infoAt: 0 } }, toast: "Conectado a Google Drive", toastEn: "Connected to Google Drive" };
         case "pending": return null;
         case "slow": return { state: { flow: { ...f, interval: Math.min(60, f.interval + 5) } } };
         case "denied": case "expired": case "scope": case "error": return next({ step: "connect", error: r.status });
-        default: return next({ step: "connect" });
+        // No code kept: either nothing was asked or the person already accepted (a late second tick). The real connection decides.
+        default: return connected() ? next({ step: "done" }) : next({ step: "connect" });
       }
+    }
+    // The copy's size and time, asked once after the first paint; a failure still ends the asking (Probar conexión says why).
+    case "loadInfo": {
+      if (f.step !== "done" || f.infoAt !== 0) return null;
+      let info = f.info;
+      try { info = await driveInfo(); } catch (_) { /* kept as it was */ }
+      return { state: { flow: { ...f, info, infoAt: Date.now() } } };
     }
     case "goBack":
       if (f.step === "connect") return null;
@@ -621,7 +633,7 @@ export async function onEvent(name, arg, rawFlow) {
       const s = await syncStatus();
       let info = f.info;
       try { info = await driveInfo(); } catch (_) { /* the status line already says what failed */ }
-      return next({ step: f.step, status: s.message, info });
+      return next({ step: f.step, status: s.message, info, infoAt: Date.now() });
     }
     case "askDisconnect":
       return { dialog: { title: "¿Desconectar este aparato?", titleEn: "Disconnect this device?", body: "Tu copia en Drive no se borra y tus otros aparatos siguen conectados.", bodyEn: "Your copy in Drive is not deleted and your other devices stay connected.", buttons: [{ label: "Desconectar", labelEn: "Disconnect", event: "disconnect", variant: "primary" }, { label: "Cancelar", labelEn: "Cancel", variant: "text" }] } };
@@ -629,13 +641,16 @@ export async function onEvent(name, arg, rawFlow) {
     case "disconnect":
       writeStore("tok", null);
       writeStore("dev", null);
-      return { config: { refreshToken: null }, state: { flow: { ...f, step: "connect", error: "", status: "", user: "", exp: 0, info: { size: 0, modified: 0 } } }, toast: "Este aparato ya no está conectado", toastEn: "This device is no longer connected" };
+      return { config: { refreshToken: null }, state: { flow: { ...f, step: "connect", error: "", status: "", user: "", exp: 0, info: { size: 0, modified: 0 }, infoAt: 0 } }, toast: "Este aparato ya no está conectado", toastEn: "This device is no longer connected" };
     default: return null;
   }
 }
 
 export async function screen({ state, device }) {
-  return view(state && state.flow, device);
+  const linked = connected();
+  const kept = state && state.flow && typeof state.flow === "object" && Object.keys(state.flow).length > 0 ? state.flow : null;
+  // Nothing kept yet (the first paint, before `open` answers): a connected device starts on the last step, never on "Conectar".
+  return view(kept || (linked ? { step: "done" } : null), device, linked);
 }
 
 export async function screenEvent({ name, arg, state }) {
