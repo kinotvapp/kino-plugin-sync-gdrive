@@ -1,6 +1,6 @@
 {
   "id": "sync-gdrive",
-  "name": "Kino Sync for Google Drive",
+  "name": "Kino Sync",
   "version": "0.1.0",
   "apiVersion": 13,
   "entry": "plugin.js",
@@ -21,8 +21,8 @@
       "type": "help",
       "title": "Cómo conectar",
       "titleEn": "How to connect",
-      "body": "1. Toca Conectar con Google.\n2. En tu celular o computador abre google.com/device y escribe el código que te muestro.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta oculta de tu Drive que solo este plugin ve. Está cifrada: Google no puede leerla.",
-      "bodyEn": "1. Tap Connect with Google.\n2. On your phone or computer open google.com/device and type the code I show you.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a hidden folder of your Drive that only this plugin sees. It is encrypted: Google cannot read it."
+      "body": "1. Toca Conectar con Google.\n2. En tu celular o computador abre google.com/device y escribe el código que te muestro.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
+      "bodyEn": "1. Tap Connect with Google.\n2. On your phone or computer open google.com/device and type the code I show you.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
     },
     {
       "key": "account",
@@ -49,8 +49,8 @@
       "label": "Desconectar",
       "labelEn": "Disconnect",
       "type": "action",
-      "confirm": "¿Desconectar este aparato de Google Drive? Tu copia en Drive no se borra.",
-      "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted."
+      "confirm": "¿Desconectar este aparato de Google Drive? Tu copia en Drive no se borra y tus otros aparatos siguen conectados.",
+      "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted and your other devices stay connected."
     },
     {
       "key": "status",

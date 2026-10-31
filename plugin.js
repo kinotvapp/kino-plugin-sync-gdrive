@@ -1,9 +1,10 @@
 // Sync Google Drive (sync-gdrive): Kino's cross-device sync through the person's own Google Drive. EXPERIMENTAL.
 //
 // Kino encrypts the snapshot and hands this plugin an opaque blob (base64). The plugin keeps it as ONE file, kino-sync.bin,
-// in the app's hidden Drive folder (the `drive.appdata` scope: only this OAuth client sees it, the person's own files
-// stay out of reach). Google only ever holds ciphertext: the key is derived by Kino from the "syncKey" setting and is
-// never sent anywhere.
+// inside a "Kino Sync" folder in the person's Drive. The scope is `drive.file`: the plugin only ever sees the files IT
+// created (measured against the real Google: `drive.appdata`, the hidden folder, is refused in the device flow with
+// "Invalid device flow scope"; `drive.file` is accepted), so the person's own files stay out of reach. Google only ever
+// holds ciphertext: the key is derived by Kino from the "syncKey" setting and is never sent anywhere.
 //
 // Signing in is Google's device flow (the one TV apps use): the plugin asks for a code, the person types it at
 // google.com/device on any other screen, and the plugin trades the code for a refresh token kept on THIS device only
@@ -20,7 +21,8 @@ const es = () => !String(kino.lang || "es").toLowerCase().startsWith("en");
 const t = (esText, enText) => (es() ? esText : enText);
 
 const FILE_NAME = "kino-sync.bin";
-const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const FOLDER_NAME = "Kino Sync";
 const OAUTH = "https://oauth2.googleapis.com";
 const DRIVE = "https://www.googleapis.com";
 const DEFAULT_VERIFY = "https://www.google.com/device";
@@ -128,10 +130,10 @@ async function drive(method, url, options, again) {
   return r;
 }
 
-/** The copy's file in the hidden app folder (the oldest if a race made two), or null. */
+/** The copy's file (the oldest if a race made two), or null. With `drive.file` only the files this client created are listed. */
 async function findFile() {
   const q = "name='" + FILE_NAME + "' and trashed=false";
-  const url = DRIVE + "/drive/v3/files?" + form({ spaces: "appDataFolder", q, orderBy: "createdTime", pageSize: 10, fields: "files(id,version,size,appProperties)" });
+  const url = DRIVE + "/drive/v3/files?" + form({ q, orderBy: "createdTime", pageSize: 10, fields: "files(id,version,size,appProperties)" });
   const r = await drive("GET", url);
   if (r.status !== 200) throw kino.error("unavailable", "list status " + r.status);
   const files = (r.json() || {}).files || [];
@@ -139,6 +141,21 @@ async function findFile() {
 }
 
 const isEmpty = (f) => !f || Number(f.size) === 0;
+
+/** The "Kino Sync" folder this client made (the oldest if a race made two), created when there is none. */
+async function ensureFolder() {
+  const q = "name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+  const found = await drive("GET", DRIVE + "/drive/v3/files?" + form({ q, orderBy: "createdTime", pageSize: 10, fields: "files(id)" }));
+  if (found.status !== 200) throw kino.error("unavailable", "folder list status " + found.status);
+  const existing = ((found.json() || {}).files || [])[0];
+  if (existing) return existing.id;
+  const made = await drive("POST", DRIVE + "/drive/v3/files?" + form({ fields: "id" }), {
+    headers: { "Content-Type": "application/json; charset=UTF-8" },
+    body: JSON.stringify({ name: FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" }),
+  });
+  if (made.status !== 200) throw kino.error("unavailable", "folder create status " + made.status);
+  return made.json().id;
+}
 
 // --- Base64 and the multipart body ---
 
@@ -192,7 +209,7 @@ export async function syncPush({ blob, expectedVersion, maxBlobBytes }) {
   if (f && !isEmpty(f) && String(f.version) !== expected) throw kino.error("conflict", "the stored copy changed (version " + f.version + ")");
   if (!f && expected !== null) throw kino.error("conflict", "the stored copy is gone");
   const tag = kino.crypto.randomBytes(8, "hex");
-  const metadata = f ? { appProperties: { w: tag } } : { name: FILE_NAME, parents: ["appDataFolder"], appProperties: { w: tag } };
+  const metadata = f ? { appProperties: { w: tag } } : { name: FILE_NAME, parents: [await ensureFolder()], appProperties: { w: tag } };
   const body = multipartRelated(JSON.stringify(metadata), blob);
   const url = (f ? DRIVE + "/upload/drive/v3/files/" + encodeURIComponent(f.id) : DRIVE + "/upload/drive/v3/files") + "?" + form({ uploadType: "multipart", fields: "id,version" });
   const r = await drive(f ? "PATCH" : "POST", url, { headers: { "Content-Type": body.contentType }, body: { base64: body.base64 } });
@@ -259,7 +276,7 @@ async function finish() {
   if (r.status === 200 && r.json.refresh_token) {
     if (r.json.scope && !String(r.json.scope).split(" ").includes(SCOPE)) {
       writeStore("dev", null);
-      return { message: t("No diste el permiso de la carpeta de Kino en Drive. Conecta de nuevo y déjalo marcado.", "You did not give the permission for Kino's folder in Drive. Connect again and leave it ticked.") };
+      return { message: t("No diste el permiso para guardar archivos de Kino en Drive. Conecta de nuevo y déjalo marcado.", "You did not give the permission to keep Kino's files in Drive. Connect again and leave it ticked.") };
     }
     writeStore("dev", null);
     if (r.json.access_token) writeStore("tok", { token: r.json.access_token, exp: Date.now() + (Number(r.json.expires_in) || 3600) * 1000 });
@@ -281,15 +298,18 @@ async function finish() {
   }
 }
 
+/**
+ * This device forgets its connection; it does NOT revoke the token at Google. Measured against the real Google (2026-10-31):
+ * revoking one device's refresh token invalidated the other device's too (its own revoke answered 400), so revoking here
+ * would disconnect all of the person's devices. Removing the access everywhere is done in the Google account page.
+ */
 async function disconnect() {
-  const refresh = String(kino.config.get("refreshToken") || "").trim();
-  if (refresh) {
-    // Best effort: the token stops working at Google; a failure here must not keep the person connected.
-    try { await oauthPost("/revoke", { token: refresh }); } catch (_) { /* offline: the token stays valid at Google until removed in the account page */ }
-  }
   writeStore("tok", null);
   writeStore("dev", null);
-  return { message: t("Este aparato ya no está conectado a Google Drive.", "This device is no longer connected to Google Drive."), setSettings: { refreshToken: "" } };
+  return {
+    message: t("Este aparato ya no está conectado a Google Drive. Para quitar el acceso de todos tus aparatos entra a myaccount.google.com/permissions.", "This device is no longer connected to Google Drive. To remove access for all your devices go to myaccount.google.com/permissions."),
+    setSettings: { refreshToken: "" },
+  };
 }
 
 export async function action(key) {

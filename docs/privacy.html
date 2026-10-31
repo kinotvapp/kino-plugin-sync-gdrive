@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Política de privacidad / Privacy policy · Kino Sync for Google Drive</title>
+  <title>Política de privacidad / Privacy policy · Kino Sync</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,14 +17,14 @@
 
   <section lang="es">
     <h1>Política de privacidad</h1>
-    <p class="muted">Kino Sync for Google Drive · Última actualización: 31 de octubre de 2026</p>
+    <p class="muted">Kino Sync · Última actualización: 31 de octubre de 2026</p>
 
     <h2>Qué es este plugin</h2>
-    <p>"Kino Sync for Google Drive" es un plugin de Kino que sincroniza tus datos de Kino entre tus aparatos usando tu propio Google Drive. Es un proyecto independiente, no oficial y sin relación con Google.</p>
+    <p>"Kino Sync" es un plugin de Kino que sincroniza tus datos de Kino entre tus aparatos usando tu propio Google Drive. Es un proyecto independiente, no oficial y sin relación con Google.</p>
 
     <h2>Qué datos de Google usa</h2>
-    <p>El plugin pide un único permiso de Google: <code>https://www.googleapis.com/auth/drive.appdata</code>. Ese permiso solo da acceso a una <strong>carpeta oculta de la propia app</strong> en tu Google Drive. El plugin no puede ver, leer, listar ni modificar ninguno de tus otros archivos.</p>
-    <p>Dentro de esa carpeta el plugin crea, lee y reemplaza un único archivo, <code>kino-sync.bin</code>, que contiene una copia de tus datos de Kino (por ejemplo tu historial, tu biblioteca y tus ajustes). Esa copia se <strong>cifra en tu aparato</strong> antes de subirse; la clave de cifrado nunca se envía a Google ni a nadie más.</p>
+    <p>El plugin pide un único permiso de Google: <code>https://www.googleapis.com/auth/drive.file</code>. Ese permiso solo da acceso a los <strong>archivos que el propio plugin crea</strong> en tu Google Drive. El plugin no puede ver, leer, listar ni modificar ninguno de tus otros archivos.</p>
+    <p>El plugin crea en tu Drive una carpeta «Kino Sync» con un único archivo, <code>kino-sync.bin</code>, que lee y reemplaza, y que contiene una copia de tus datos de Kino (por ejemplo tu historial, tu biblioteca y tus ajustes). Esa copia se <strong>cifra en tu aparato</strong> antes de subirse; la clave de cifrado nunca se envía a Google ni a nadie más.</p>
 
     <h2>Adónde van tus datos</h2>
     <ul>
@@ -39,9 +39,9 @@
 
     <h2>Cómo quitar el acceso y borrar tus datos</h2>
     <ul>
-      <li>En el plugin, toca <strong>Desconectar</strong>: el token se revoca en Google y se borra de ese aparato.</li>
-      <li>También puedes quitar el acceso desde tu cuenta de Google, en <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
-      <li>Para borrar la copia, en Google Drive ve a Configuración → Administrar aplicaciones y elige borrar los datos ocultos de la app.</li>
+      <li>En el plugin, toca <strong>Desconectar</strong>: ese aparato olvida la conexión (tus otros aparatos siguen conectados).</li>
+      <li>Para quitar el acceso de todos tus aparatos a la vez, hazlo desde tu cuenta de Google, en <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      <li>Para borrar la copia, borra la carpeta «Kino Sync» de tu Google Drive.</li>
     </ul>
 
     <h2>Menores</h2>
@@ -55,14 +55,14 @@
 
   <section lang="en">
     <h1>Privacy policy</h1>
-    <p class="muted">Kino Sync for Google Drive · Last updated: October 31, 2026</p>
+    <p class="muted">Kino Sync · Last updated: October 31, 2026</p>
 
     <h2>What this plugin is</h2>
-    <p>"Kino Sync for Google Drive" is a Kino plugin that syncs your Kino data between your devices using your own Google Drive. It is an independent, unofficial project and is not affiliated with Google.</p>
+    <p>"Kino Sync" is a Kino plugin that syncs your Kino data between your devices using your own Google Drive. It is an independent, unofficial project and is not affiliated with Google.</p>
 
     <h2>What Google data it uses</h2>
-    <p>The plugin asks for one Google permission: <code>https://www.googleapis.com/auth/drive.appdata</code>. That permission only gives access to a <strong>hidden folder that belongs to the app itself</strong> in your Google Drive. The plugin cannot see, read, list or change any of your other files.</p>
-    <p>Inside that folder the plugin creates, reads and replaces a single file, <code>kino-sync.bin</code>, which holds a copy of your Kino data (for example your history, library and settings). That copy is <strong>encrypted on your device</strong> before it is uploaded; the encryption key is never sent to Google or to anyone else.</p>
+    <p>The plugin asks for one Google permission: <code>https://www.googleapis.com/auth/drive.file</code>. That permission only gives access to the <strong>files the plugin itself creates</strong> in your Google Drive. The plugin cannot see, read, list or change any of your other files.</p>
+    <p>The plugin creates a “Kino Sync” folder in your Drive with a single file, <code>kino-sync.bin</code>, which it reads and replaces, and which holds a copy of your Kino data (for example your history, library and settings). That copy is <strong>encrypted on your device</strong> before it is uploaded; the encryption key is never sent to Google or to anyone else.</p>
 
     <h2>Where your data goes</h2>
     <ul>
@@ -77,9 +77,9 @@
 
     <h2>How to remove access and delete your data</h2>
     <ul>
-      <li>In the plugin, tap <strong>Disconnect</strong>: the token is revoked at Google and erased from that device.</li>
-      <li>You can also remove access from your Google account at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
-      <li>To delete the copy, in Google Drive go to Settings → Manage apps and choose to delete the app's hidden data.</li>
+      <li>In the plugin, tap <strong>Disconnect</strong>: that device forgets the connection (your other devices stay connected).</li>
+      <li>To remove access for all your devices at once, do it from your Google account at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      <li>To delete the copy, delete the “Kino Sync” folder from your Google Drive.</li>
     </ul>
 
     <h2>Children</h2>
@@ -89,7 +89,7 @@
     <p>If this policy changes, the new version will be published on this same page with its date. Questions: <a href="mailto:contact@kinoplayer.com">contact@kinoplayer.com</a>.</p>
   </section>
 
-  <footer>Kino Sync for Google Drive · MIT</footer>
+  <footer>Kino Sync · MIT</footer>
 </main>
 </body>
 </html>
