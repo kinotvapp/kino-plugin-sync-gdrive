@@ -499,6 +499,17 @@ function doneStep(f) {
   const hasCopy = f.info.size > 0;
   const asking = f.infoAt === 0;
   return [
+    // The person must still pick this plugin as the sync provider (Ajustes ▸ Conectar ▸ Proveedor ▸ «Usar Kino Sync»): no screen action
+    // opens that page (the `go` shapes only reach this plugin's content or a few of Kino's pages), so the step says exactly where it is.
+    {
+      type: "Card", key: "lastStep", variant: "filled", gap: 8, children: [
+        { type: "Row", gap: 8, crossAxisAlignment: "center", children: [
+          { type: "Icon", name: "arrow_forward", color: "primary" },
+          { type: "Text", text: "Último paso: elige Kino Sync", textEn: "Last step: pick Kino Sync", style: "h4" },
+        ] },
+        { type: "Text", text: "Abre Ajustes ▸ Conectar ▸ Proveedor y toca «Usar Kino Sync». Hasta entonces tu copia no se sube a Drive.", textEn: "Open Settings ▸ Connect ▸ Provider and tap «Use Kino Sync». Until then your copy is not uploaded to Drive." },
+      ],
+    },
     {
       type: "Card", key: "stateCard", variant: "outlined", gap: 4, children: [
         tile("connected", "check", "Conectado a Google Drive", "Connected to Google Drive", "Este aparato sincroniza solo.", "This device syncs by itself.", { type: "Badge", text: "Activo", textEn: "Active", color: "primary" }),
