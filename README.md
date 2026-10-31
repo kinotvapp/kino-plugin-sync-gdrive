@@ -31,7 +31,7 @@ The plugin needs an "OAuth client" from a Google Cloud project of yours. It is f
 3. **Data access**: add only the **`.../auth/drive.file`** scope (non-sensitive: no scope verification).
 4. **Publish the app to "In production".** Left in "Testing", refresh tokens expire after **7 days**.
 5. **Clients → Create → OAuth client ID → type "TVs and Limited Input devices"**. It gives you an id and a secret.
-6. Paste them into the plugin (Advanced) or, once proven, set them as defaults in `plugin.js`. This kind of secret is not truly secret (it ships inside public apps), but do not push it to a public repository without thinking.
+6. The **published** plugin carries this client built in, so nobody pastes anything: the id is public and the secret is a **sealed secret** (Kino's own mechanism: sealed for this repository with `sdk/seal.mjs`, put in the manifest's `secrets`; `plugin.js` only ever holds a marker, and Kino swaps in the real value only inside a request to the declared Google host). Sealing is obfuscation, not secrecy, and keeps the secret out of the repository and its history. To use another client, seal its secret for your own repository, or paste it under Advanced, which replaces the built-in one.
 
 ## How it stores, and how it avoids overwriting
 Drive cannot do "write only if the version is X". The plugin does **check, write, check again**:

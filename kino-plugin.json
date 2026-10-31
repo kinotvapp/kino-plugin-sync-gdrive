@@ -1,7 +1,7 @@
 {
   "id": "sync-gdrive",
   "name": "Kino Sync",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "apiVersion": 13,
   "entry": "plugin.js",
   "description": "Sincroniza tus aparatos de Kino a través de tu propio Google Drive: conectas con un código, sin servidor ni hojas que copiar. Experimental. No oficial: sin relación con Google. (Experimental. Unofficial: not affiliated with Google.)",
@@ -21,37 +21,13 @@
       "type": "help",
       "title": "Cómo conectar",
       "titleEn": "How to connect",
-      "body": "1. Pega el ID y el secreto del cliente de Google y toca Guardar.\n2. Toca Conectar con Google.\n3. Toca Abrir google.com/device (o ábrelo en otro aparato) y escribe el código que verás en Estado.\n4. Elige tu cuenta y acepta.\n5. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
-      "bodyEn": "1. Paste the Google client id and secret and tap Save.\n2. Tap Connect with Google.\n3. Tap Open google.com/device (or open it on another device) and type the code you will see in Status.\n4. Pick your account and accept.\n5. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
-    },
-    {
-      "key": "client",
-      "label": "1. Cliente de Google",
-      "labelEn": "1. Google client",
-      "type": "section",
-      "hint": "El ID y el secreto del cliente de Google con el que se conecta este plugin. Pégalos y toca Guardar.",
-      "hintEn": "The id and secret of the Google client this plugin connects with. Paste them and tap Save."
-    },
-    {
-      "key": "clientId",
-      "label": "ID del cliente",
-      "labelEn": "Client id",
-      "type": "text",
-      "hint": "123456789-abc.apps.googleusercontent.com",
-      "hintEn": "123456789-abc.apps.googleusercontent.com"
-    },
-    {
-      "key": "clientSecret",
-      "label": "Secreto del cliente",
-      "labelEn": "Client secret",
-      "type": "password",
-      "hint": "El que te dio Google Cloud para ese cliente",
-      "hintEn": "The one Google Cloud gave you for that client"
+      "body": "1. Toca Conectar con Google.\n2. Toca Abrir google.com/device (o ábrelo en otro aparato) y escribe el código que verás en Estado.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
+      "bodyEn": "1. Tap Connect with Google.\n2. Tap Open google.com/device (or open it on another device) and type the code you will see in Status.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
     },
     {
       "key": "account",
-      "label": "2. Conecta tu cuenta",
-      "labelEn": "2. Connect your account",
+      "label": "Conecta tu cuenta",
+      "labelEn": "Connect your account",
       "type": "section",
       "hint": "Cada aparato se conecta por su cuenta con un código; la copia es la misma para todos.",
       "hintEn": "Each device connects on its own with a code; the copy is the same for all of them."
@@ -93,6 +69,30 @@
       "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted and your other devices stay connected."
     },
     {
+      "key": "client",
+      "label": "Avanzado (opcional)",
+      "labelEn": "Advanced (optional)",
+      "type": "section",
+      "hint": "Déjalo vacío: Kino Sync ya trae el suyo. Solo si quieres usar tu propio cliente de Google, pega aquí su ID y su secreto y toca Guardar.",
+      "hintEn": "Leave it empty: Kino Sync comes with its own. Only if you want to use your own Google client, paste its id and secret here and tap Save."
+    },
+    {
+      "key": "clientId",
+      "label": "ID del cliente",
+      "labelEn": "Client id",
+      "type": "text",
+      "hint": "123456789-abc.apps.googleusercontent.com",
+      "hintEn": "123456789-abc.apps.googleusercontent.com"
+    },
+    {
+      "key": "clientSecret",
+      "label": "Secreto del cliente",
+      "labelEn": "Client secret",
+      "type": "password",
+      "hint": "El que te dio Google Cloud para ese cliente",
+      "hintEn": "The one Google Cloud gave you for that client"
+    },
+    {
       "key": "syncKey",
       "label": "Clave de cifrado",
       "labelEn": "Encryption key",
@@ -122,5 +122,8 @@
       "clientId",
       "clientSecret"
     ]
+  },
+  "secrets": {
+    "googleClientSecret": "kino-sealed:v1:j0sjtbbPvdhL0-4yCDzdhh9J5Olem8qZ68vX0EOw6Cmb5MrqKuVgEWncIUJ0ZYTyN9XOpf_nJFZ_vsCcg9tZmThhIPbz_uTHryZlMuIp4Kcl82JReI_V4KwsMk4wFp8"
   }
 }

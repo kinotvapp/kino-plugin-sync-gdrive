@@ -43,13 +43,34 @@ function writeStore(key, value) {
   try { kino.storage.set(key, JSON.stringify(value)); } catch (e) { kino.log("storage write refused: " + key); }
 }
 
+/**
+ * The Google client Kino Sync connects with, so nobody has to paste one. The id is public (it travels in every Google URL); the
+ * secret is a SEALED secret of the published plugin ("secrets" in its manifest, sealed for its repository with sdk/seal.mjs):
+ * this code only ever holds a marker, and Kino puts the real value in only inside a kino.fetch request to a host the manifest
+ * declares. It keeps the secret out of the repository and its history; it is obfuscation, not secrecy (Google itself says such a
+ * client's secret is not confidential: it ships inside public apps). This example's manifest declares no secret, so there the two
+ * settings under "Avanzado" are the client. Pasting an own client in them replaces the built-in one.
+ */
+const BUILT_IN_CLIENT_ID = "163300307334-ov839vh3mpo0t9mt1lsbnir7ih8nr09l.apps.googleusercontent.com";
+
+/** The sealed client secret's marker, or "" when the manifest declares none (kino.secret throws for a name it does not know). */
+function builtInSecret() {
+  try { return String(kino.secret("googleClientSecret") || ""); } catch (_) { return ""; }
+}
+
 function client() {
-  const id = String(kino.config.get("clientId") || "").trim();
-  const secret = String(kino.config.get("clientSecret") || "").trim();
+  const own = { id: String(kino.config.get("clientId") || "").trim(), secret: String(kino.config.get("clientSecret") || "").trim() };
+  const ownGiven = Boolean(own.id || own.secret);
+  const id = ownGiven ? own.id : BUILT_IN_CLIENT_ID;
+  const secret = ownGiven ? own.secret : builtInSecret();
   if (!id || !secret) {
-    throw fail("auth_required", "client missing", t("Falta el cliente de Google: pega el ID y el secreto en el paso 1 y toca Guardar.", "The Google client is missing: paste the id and the secret in step 1 and tap Save."));
+    throw fail("auth_required", "client missing", t("Falta el cliente de Google: pega el ID y el secreto (en Avanzado) y toca Guardar.", "The Google client is missing: paste the id and the secret (under Advanced) and tap Save."));
   }
   return { id, secret };
+}
+
+function hasClient() {
+  try { client(); return true; } catch (_) { return false; }
 }
 
 // --- OAuth ---
