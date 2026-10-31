@@ -1,7 +1,7 @@
 {
   "id": "sync-gdrive",
   "name": "Kino Sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "apiVersion": 13,
   "entry": "plugin.js",
   "description": "Sincroniza tus aparatos de Kino a través de tu propio Google Drive: conectas con un código, sin servidor ni hojas que copiar. Experimental. No oficial: sin relación con Google. (Experimental. Unofficial: not affiliated with Google.)",
@@ -21,55 +21,21 @@
       "type": "help",
       "title": "Cómo conectar",
       "titleEn": "How to connect",
-      "body": "1. Toca Conectar con Google.\n2. En tu celular o computador abre google.com/device y escribe el código que te muestro.\n3. Elige tu cuenta y acepta.\n4. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
-      "bodyEn": "1. Tap Connect with Google.\n2. On your phone or computer open google.com/device and type the code I show you.\n3. Pick your account and accept.\n4. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
+      "body": "1. Pega el ID y el secreto del cliente de Google y toca Guardar.\n2. Toca Conectar con Google.\n3. Toca Abrir google.com/device (o ábrelo en otro aparato) y escribe el código que verás en Estado.\n4. Elige tu cuenta y acepta.\n5. Vuelve y toca Ya lo hice.\nLa copia queda en una carpeta \"Kino Sync\" de tu Drive; este plugin solo ve sus propios archivos. Está cifrada: Google no puede leerla.",
+      "bodyEn": "1. Paste the Google client id and secret and tap Save.\n2. Tap Connect with Google.\n3. Tap Open google.com/device (or open it on another device) and type the code you will see in Status.\n4. Pick your account and accept.\n5. Come back and tap I did it.\nThe copy is kept in a \"Kino Sync\" folder of your Drive; this plugin only sees its own files. It is encrypted: Google cannot read it."
     },
     {
-      "key": "account",
-      "label": "Tu cuenta de Google",
-      "labelEn": "Your Google account",
+      "key": "client",
+      "label": "1. Cliente de Google",
+      "labelEn": "1. Google client",
       "type": "section",
-      "hint": "Cada aparato se conecta por su cuenta con un código; la copia de seguridad es la misma para todos.",
-      "hintEn": "Each device connects on its own with a code; the copy is the same for all of them."
-    },
-    {
-      "key": "connect",
-      "label": "Conectar con Google",
-      "labelEn": "Connect with Google",
-      "type": "action"
-    },
-    {
-      "key": "finish",
-      "label": "Ya lo hice",
-      "labelEn": "I did it",
-      "type": "action"
-    },
-    {
-      "key": "disconnect",
-      "label": "Desconectar",
-      "labelEn": "Disconnect",
-      "type": "action",
-      "confirm": "¿Desconectar este aparato de Google Drive? Tu copia en Drive no se borra y tus otros aparatos siguen conectados.",
-      "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted and your other devices stay connected."
-    },
-    {
-      "key": "status",
-      "label": "Estado",
-      "labelEn": "Status",
-      "type": "status"
-    },
-    {
-      "key": "advanced",
-      "label": "Avanzado",
-      "labelEn": "Advanced",
-      "type": "section",
-      "hint": "El cliente de Google con el que se conecta este plugin. Si usas el de Kino, no cambies nada.",
-      "hintEn": "The Google client this plugin connects with. If you use Kino's, change nothing."
+      "hint": "El ID y el secreto del cliente de Google con el que se conecta este plugin. Pégalos y toca Guardar.",
+      "hintEn": "The id and secret of the Google client this plugin connects with. Paste them and tap Save."
     },
     {
       "key": "clientId",
-      "label": "Id del cliente de Google",
-      "labelEn": "Google client id",
+      "label": "ID del cliente",
+      "labelEn": "Client id",
       "type": "text",
       "hint": "123456789-abc.apps.googleusercontent.com",
       "hintEn": "123456789-abc.apps.googleusercontent.com"
@@ -81,6 +47,50 @@
       "type": "password",
       "hint": "El que te dio Google Cloud para ese cliente",
       "hintEn": "The one Google Cloud gave you for that client"
+    },
+    {
+      "key": "account",
+      "label": "2. Conecta tu cuenta",
+      "labelEn": "2. Connect your account",
+      "type": "section",
+      "hint": "Cada aparato se conecta por su cuenta con un código; la copia es la misma para todos.",
+      "hintEn": "Each device connects on its own with a code; the copy is the same for all of them."
+    },
+    {
+      "key": "connect",
+      "label": "Conectar con Google",
+      "labelEn": "Connect with Google",
+      "type": "action"
+    },
+    {
+      "key": "device",
+      "type": "link",
+      "label": "Abrir google.com/device",
+      "labelEn": "Open google.com/device",
+      "url": "https://www.google.com/device",
+      "devices": [
+        "phone"
+      ]
+    },
+    {
+      "key": "finish",
+      "label": "Ya lo hice",
+      "labelEn": "I did it",
+      "type": "action"
+    },
+    {
+      "key": "status",
+      "label": "Estado",
+      "labelEn": "Status",
+      "type": "status"
+    },
+    {
+      "key": "disconnect",
+      "label": "Desconectar",
+      "labelEn": "Disconnect",
+      "type": "action",
+      "confirm": "¿Desconectar este aparato de Google Drive? Tu copia en Drive no se borra y tus otros aparatos siguen conectados.",
+      "confirmEn": "Disconnect this device from Google Drive? Your copy in Drive is not deleted and your other devices stay connected."
     },
     {
       "key": "syncKey",

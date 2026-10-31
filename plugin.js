@@ -47,7 +47,7 @@ function client() {
   const id = String(kino.config.get("clientId") || "").trim();
   const secret = String(kino.config.get("clientSecret") || "").trim();
   if (!id || !secret) {
-    throw fail("auth_required", "client missing", t("Falta el cliente de Google (en Avanzado).", "The Google client is missing (under Advanced)."));
+    throw fail("auth_required", "client missing", t("Falta el cliente de Google: pega el ID y el secreto en el paso 1 y toca Guardar.", "The Google client is missing: paste the id and the secret in step 1 and tap Save."));
   }
   return { id, secret };
 }
@@ -238,7 +238,7 @@ export async function syncStatus() {
 
 export async function settingsStatus() {
   if (!String(kino.config.get("clientId") || "").trim() || !String(kino.config.get("clientSecret") || "").trim()) {
-    return { status: t("Falta el cliente de Google (en Avanzado).", "The Google client is missing (under Advanced).") };
+    return { status: t("Falta el cliente de Google: pega el ID y el secreto en el paso 1 y toca Guardar.", "The Google client is missing: paste the id and the secret in step 1 and tap Save.") };
   }
   if (!String(kino.config.get("refreshToken") || "").trim()) {
     const dev = readStore("dev");
@@ -253,9 +253,10 @@ const displayUrl = (u) => String(u || DEFAULT_VERIFY).replace(/^https?:\/\//, ""
 async function connect() {
   const { id } = client();
   const r = await oauthPost("/device/code", { client_id: id, scope: SCOPE });
+  kino.log("connect: device/code answered " + r.status + (r.json.error ? " " + r.json.error : ""));
   if (r.status !== 200 || !r.json.device_code || !r.json.user_code) {
     if (r.json.error === "invalid_client" || r.json.error === "unauthorized_client") {
-      return { message: t("Google no reconoce el cliente. Revisa el id del cliente en Avanzado.", "Google does not recognise the client. Check the client id under Advanced.") };
+      return { message: t("Google no reconoce el cliente. Revisa el ID del cliente en el paso 1 y toca Guardar.", "Google does not recognise the client. Check the client id in step 1 and tap Save.") };
     }
     return { message: t("Google no dio un código. Intenta de nuevo en un momento.", "Google did not give a code. Try again in a moment.") };
   }
@@ -273,6 +274,7 @@ async function finish() {
   }
   const { id, secret } = client();
   const r = await oauthPost("/token", { client_id: id, client_secret: secret, device_code: dev.code, grant_type: "urn:ietf:params:oauth:grant-type:device_code" });
+  kino.log("finish: token answered " + r.status + (r.json.error ? " " + r.json.error : ""));
   if (r.status === 200 && r.json.refresh_token) {
     if (r.json.scope && !String(r.json.scope).split(" ").includes(SCOPE)) {
       writeStore("dev", null);
@@ -313,13 +315,15 @@ async function disconnect() {
 }
 
 export async function action(key) {
+  // `refresh`: the form reads its status line again, so the code (or "Conectado") stays on screen after the toast is gone.
+  kino.log("action: " + String(key));
   try {
-    if (key === "connect") return await connect();
-    if (key === "finish") return await finish();
-    if (key === "disconnect") return await disconnect();
+    if (key === "connect") return { refresh: true, ...(await connect()) };
+    if (key === "finish") return { refresh: true, ...(await finish()) };
+    if (key === "disconnect") return { refresh: true, ...(await disconnect()) };
     return { message: t("Nada que hacer.", "Nothing to do.") };
   } catch (e) {
-    return { message: (e && e.say) || t("No se pudo completar. Intenta de nuevo.", "Could not finish. Try again.") };
+    return { refresh: true, message: (e && e.say) || t("No se pudo completar. Intenta de nuevo.", "Could not finish. Try again.") };
   }
 }
 
