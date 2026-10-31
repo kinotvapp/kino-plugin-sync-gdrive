@@ -508,6 +508,8 @@ function doneStep(f) {
           { type: "Text", text: "Último paso: elige Kino Sync", textEn: "Last step: pick Kino Sync", style: "h4" },
         ] },
         { type: "Text", text: "Abre Ajustes ▸ Conectar ▸ Proveedor y toca «Usar Kino Sync». Hasta entonces tu copia no se sube a Drive.", textEn: "Open Settings ▸ Connect ▸ Provider and tap «Use Kino Sync». Until then your copy is not uploaded to Drive." },
+        // Kino opens its provider settings itself (go.syncProvider); an older Kino drops the go, so the sentence above stays.
+        { type: "ElevatedButton", key: "pickProvider", icon: "sync", labelText: "Abrir proveedor de sincronización", labelTextEn: "Open the sync provider", onPressed: { go: { syncProvider: true } } },
       ],
     },
     {
