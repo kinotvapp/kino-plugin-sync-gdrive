@@ -1,7 +1,7 @@
 {
   "id": "sync-gdrive",
   "name": "Kino Sync",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "apiVersion": 14,
   "entry": "plugin.js",
   "description": "Sincroniza tus aparatos de Kino a través de tu propio Google Drive: conectas con un código, sin servidor ni hojas que copiar. Experimental. No oficial: sin relación con Google. (Experimental. Unofficial: not affiliated with Google.)",

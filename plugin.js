@@ -495,23 +495,11 @@ function codeStep(f, tv) {
   }, { type: "TextButton", key: "again", icon: "refresh", labelText: "Pedir otro código", labelTextEn: "Ask for another code", onPressed: { event: "start", timeoutMs: 25000 } }];
 }
 
-function doneStep(f) {
+function doneStep(f, providerOn) {
   const hasCopy = f.info.size > 0;
   const asking = f.infoAt === 0;
   return [
-    // The person must still pick this plugin as the sync provider (Ajustes ▸ Conectar ▸ Proveedor ▸ «Usar Kino Sync»): no screen action
-    // opens that page (the `go` shapes only reach this plugin's content or a few of Kino's pages), so the step says exactly where it is.
-    {
-      type: "Card", key: "lastStep", variant: "filled", gap: 8, children: [
-        { type: "Row", gap: 8, crossAxisAlignment: "center", children: [
-          { type: "Icon", name: "arrow_forward", color: "primary" },
-          { type: "Text", text: "Último paso: elige Kino Sync", textEn: "Last step: pick Kino Sync", style: "h4" },
-        ] },
-        { type: "Text", text: "Abre Ajustes ▸ Conectar ▸ Proveedor y toca «Usar Kino Sync». Hasta entonces tu copia no se sube a Drive.", textEn: "Open Settings ▸ Connect ▸ Provider and tap «Use Kino Sync». Until then your copy is not uploaded to Drive." },
-        // Kino opens its provider settings itself (go.syncProvider); an older Kino drops the go, so the sentence above stays.
-        { type: "ElevatedButton", key: "pickProvider", icon: "sync", labelText: "Abrir proveedor de sincronización", labelTextEn: "Open the sync provider", onPressed: { go: { syncProvider: true } } },
-      ],
-    },
+    providerCard(providerOn),
     {
       type: "Card", key: "stateCard", variant: "outlined", gap: 4, children: [
         tile("connected", "check", "Conectado a Google Drive", "Connected to Google Drive", "Este aparato sincroniza solo.", "This device syncs by itself.", { type: "Badge", text: "Activo", textEn: "Active", color: "primary" }),
@@ -531,10 +519,54 @@ function doneStep(f) {
   ];
 }
 
+/**
+ * The last step: this plugin must be the device's sync provider for the copy to go to Drive. A Kino with kino.sync.setActive
+ * (0.9.78) lets the person switch it here: «Activar» (Kino asks first) and, once on, «Desactivar» (back to local sync). [providerOn]
+ * is true or false then; undefined on an older Kino, which keeps the written instruction and the button that opens Kino's own page.
+ */
+function providerCard(providerOn) {
+  if (providerOn === true) {
+    return {
+      type: "Card", key: "lastStep", variant: "filled", gap: 8, children: [
+        { type: "Row", gap: 8, crossAxisAlignment: "center", children: [
+          { type: "Icon", name: "check", color: "primary" },
+          { type: "Text", text: "Kino Sync es tu proveedor", textEn: "Kino Sync is your provider", style: "h4" },
+        ] },
+        { type: "Text", text: "Este aparato sube su copia a tu Drive. Si lo desactivas vuelves a la sincronización local, sin borrar nada.", textEn: "This device uploads its copy to your Drive. If you turn it off you go back to local sync, nothing is deleted." },
+        { type: "TextButton", key: "deactivateProvider", icon: "close", labelText: "Desactivar", labelTextEn: "Turn off", onPressed: "deactivateProvider" },
+      ],
+    };
+  }
+  if (providerOn === false) {
+    return {
+      type: "Card", key: "lastStep", variant: "filled", gap: 8, children: [
+        { type: "Row", gap: 8, crossAxisAlignment: "center", children: [
+          { type: "Icon", name: "arrow_forward", color: "primary" },
+          { type: "Text", text: "Último paso: activa Kino Sync", textEn: "Last step: turn on Kino Sync", style: "h4" },
+        ] },
+        { type: "Text", text: "Hasta que lo actives tu copia no se sube a Drive. Kino te pedirá confirmar, porque tu historial, tus listas y tus ajustes pasarán a sincronizarse por aquí.", textEn: "Until you turn it on your copy is not uploaded to Drive. Kino will ask you to confirm, because your history, lists and settings will sync through here." },
+        { type: "ElevatedButton", key: "activateProvider", icon: "sync", autofocus: true, labelText: "Activar", labelTextEn: "Turn on", onPressed: "activateProvider" },
+      ],
+    };
+  }
+  // The person must still pick this plugin as the sync provider (Ajustes ▸ Conectar ▸ Proveedor ▸ «Usar Kino Sync»).
+  return {
+    type: "Card", key: "lastStep", variant: "filled", gap: 8, children: [
+      { type: "Row", gap: 8, crossAxisAlignment: "center", children: [
+        { type: "Icon", name: "arrow_forward", color: "primary" },
+        { type: "Text", text: "Último paso: elige Kino Sync", textEn: "Last step: pick Kino Sync", style: "h4" },
+      ] },
+      { type: "Text", text: "Abre Ajustes ▸ Conectar ▸ Proveedor y toca «Usar Kino Sync». Hasta entonces tu copia no se sube a Drive.", textEn: "Open Settings ▸ Connect ▸ Provider and tap «Use Kino Sync». Until then your copy is not uploaded to Drive." },
+      // Kino opens its provider settings itself (go.syncProvider); an older Kino drops the go, so the sentence above stays.
+      { type: "ElevatedButton", key: "pickProvider", icon: "sync", labelText: "Abrir proveedor de sincronización", labelTextEn: "Open the sync provider", onPressed: { go: { syncProvider: true } } },
+    ],
+  };
+}
+
 const question = (key, es, en, bodyEs, bodyEn) => ({ key, title: es, titleEn: en, children: [{ type: "Text", text: bodyEs, textEn: bodyEn }] });
 
 /** The screen: a pure view of the flow state (no network, no clock). */
-export function view(raw, device, linked) {
+export function view(raw, device, linked, providerOn) {
   const f = sanitizeFlow(raw);
   const tv = device === "tv";
   const connectedNow = linked === true || f.step === "done";
@@ -546,7 +578,7 @@ export function view(raw, device, linked) {
   const items = STEPS.map((step) => ({
     key: step, title: titles[step][0], titleEn: titles[step][1], subtitle: titles[step][2], subtitleEn: titles[step][3],
     state: stateOf(step, f.step),
-    ...(step === f.step ? { children: step === "connect" ? connectStep(f) : step === "code" ? codeStep(f, tv) : doneStep(f) } : {}),
+    ...(step === f.step ? { children: step === "connect" ? connectStep(f) : step === "code" ? codeStep(f, tv) : doneStep(f, providerOn) } : {}),
   }));
   const problem = f.error ? PROBLEMS[f.error] : null;
   return {
@@ -648,6 +680,14 @@ export async function onEvent(name, arg, rawFlow) {
       try { info = await driveInfo(); } catch (_) { /* kept as it was */ }
       return { state: { flow: { ...f, info, infoAt: Date.now() } } };
     }
+    // The last step's switch (Kino 0.9.78): Kino asks the person before it turns this plugin on; a «No» changes nothing and says nothing.
+    case "activateProvider": case "deactivateProvider": {
+      const wantOn = name === "activateProvider";
+      let now;
+      try { now = await kino.sync.setActive(wantOn); } catch (_) { return { toast: "No se pudo cambiar el proveedor ahora", toastEn: "The provider could not be changed now" }; }
+      if (wantOn && !now) return null;
+      return { ...next({}), toast: now ? "Kino Sync es ahora tu proveedor" : "Volviste a la sincronización local", toastEn: now ? "Kino Sync is now your provider" : "You are back on local sync" };
+    }
     case "goBack":
       if (f.step === "connect") return null;
       writeStore("dev", null);
@@ -673,7 +713,10 @@ export async function screen({ state, device }) {
   const linked = connected();
   const kept = state && state.flow && typeof state.flow === "object" && Object.keys(state.flow).length > 0 ? state.flow : null;
   // Nothing kept yet (the first paint, before `open` answers): a connected device starts on the last step, never on "Conectar".
-  return view(kept || (linked ? { step: "done" } : null), device, linked);
+  // Kino 0.9.78 and later: whether this plugin is the provider now (undefined on an older Kino, which has no kino.sync.setActive).
+  let providerOn;
+  if (linked && kino.sync && typeof kino.sync.setActive === "function") { try { providerOn = await kino.sync.active(); } catch (_) { providerOn = undefined; } }
+  return view(kept || (linked ? { step: "done" } : null), device, linked, providerOn);
 }
 
 export async function screenEvent({ name, arg, state }) {
